@@ -67,7 +67,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 	public void run() {
 		ChatService.getInstance().setRegisteredUsers(getRegisteredUsers());
 
-		TcpServer tcpServer = new TcpServer(serverSocket, this);
+		TcpServer tcpServer = new TcpServer(serverSocket);
 		UdpServer udpServer = new UdpServer(udpSocket);
 
 		Thread tcp = new Thread(tcpServer);

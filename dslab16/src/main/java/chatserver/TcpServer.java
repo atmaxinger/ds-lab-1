@@ -17,7 +17,6 @@ import java.util.concurrent.*;
 
 public class TcpServer implements Runnable {
     private ServerSocket serverSocket;
-    private Chatserver chatserver;
     private ChatService chatService;
 
     // This list contains clients sockets that weren't closed by the TcpClientHandler
@@ -140,9 +139,8 @@ public class TcpServer implements Runnable {
         }
     }
 
-    public TcpServer(ServerSocket serverSocket, Chatserver chatserver) {
+    public TcpServer(ServerSocket serverSocket) {
         this.serverSocket = serverSocket;
-        this.chatserver = chatserver;
 
         this.chatService = ChatService.getInstance();
     }
