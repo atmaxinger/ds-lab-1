@@ -2,6 +2,9 @@ package chatserver.Service;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.*;
 
@@ -282,5 +285,14 @@ public class ChatService {
         else {
             SendViaTcp(receiver.getUserSocket(), address);
         }
+    }
+
+    public void SendOnlineUsersOverUdp(DatagramSocket socket, InetAddress receiver, int port) throws IOException {
+        byte[] buffer = getAllOnlineUsersFormatted().getBytes();
+
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, receiver, port);
+
+        // finally send the packet
+        socket.send(packet);
     }
 }
