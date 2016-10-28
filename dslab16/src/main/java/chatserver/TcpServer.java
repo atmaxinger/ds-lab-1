@@ -2,17 +2,27 @@ package chatserver;
 
 import chatserver.DTOs.User;
 import chatserver.Service.ChatService;
+import com.sun.corba.se.impl.orbutil.closure.Future;
 
+import javax.swing.text.StyledEditorKit;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.*;
 
 public class TcpServer implements Runnable {
     private ServerSocket serverSocket;
     private Chatserver chatserver;
     private ChatService chatService;
+
+    // This list contains clients sockets that weren't closed by the TcpClientHandler
+    // They could however be closed by the ChatService
+    private List<Socket> currentlyOpenClientSockets = new LinkedList<>();
 
     private class TcpClientHandler implements Runnable {
         private Socket socket;
@@ -28,12 +38,11 @@ public class TcpServer implements Runnable {
             User user = null;
 
             try {
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream()));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
                 String request = "";
 
-                while(!socket.isClosed() && (request = reader.readLine()) != null) {
+                while(!socket.isClosed() && (request = reader.readLine()) != null && !Thread.interrupted()) {
                     String[] parts = request.split(" ");
 
                     if(user == null) {
@@ -110,8 +119,23 @@ public class TcpServer implements Runnable {
                         }
                     }
                 }
-            } catch (IOException e) {
+            }
+            catch (SocketException se) {
+                // This probably means that we shut down
+            }
+            catch (IOException e) {
                 e.printStackTrace();
+            }
+
+
+            if(!socket.isClosed()) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                currentlyOpenClientSockets.remove(socket);
             }
         }
     }
@@ -125,15 +149,35 @@ public class TcpServer implements Runnable {
 
     @Override
     public void run() {
+        ExecutorService threadPool = Executors.newFixedThreadPool(100);
+
         while(true) {
             try {
                 Socket socket = serverSocket.accept();
 
+                currentlyOpenClientSockets.add(socket);
                 TcpClientHandler tch = new TcpClientHandler(socket);
-                Thread t = new Thread(tch);
-                t.start();
+                threadPool.submit(tch);
+            }
+            catch (SocketException se)
+            {
+                // This probably means that we shut down
+                threadPool.shutdownNow();
 
-            } catch (IOException e) {
+                // Go through the list of sockets not closed by the client handler
+                // close them if they're still open
+                for(Socket s : currentlyOpenClientSockets) {
+                    if(!s.isClosed()) {
+                        try {
+                            s.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                return;
+            }
+            catch (IOException e) {
                 e.printStackTrace();
             }
         }

@@ -1,8 +1,6 @@
 package chatserver;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.util.HashMap;
@@ -78,6 +76,36 @@ public class Chatserver implements IChatserverCli, Runnable {
 		Thread udp = new Thread(udpServer);
 		udp.start();
 
+		String userCommand = "";
+		BufferedReader reader = new BufferedReader(new InputStreamReader(userRequestStream));
+
+		PrintWriter pw = new PrintWriter(new OutputStreamWriter(userResponseStream));
+
+		try {
+			while(!(userCommand = reader.readLine().trim()).startsWith("!exit")) {
+    			if(userCommand.startsWith("!users")) {
+					String msg = ChatService.getInstance().GetAllUsers();
+					pw.println(msg);
+				}
+				else {
+					pw.println("Unknown command");
+				}
+
+				pw.flush();
+            }
+
+			ChatService.getInstance().CloseAllClientSockets();
+
+			serverSocket.close();
+			udpSocket.close();
+
+			tcp.join();
+			udp.join();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
 		// TODO
 	}

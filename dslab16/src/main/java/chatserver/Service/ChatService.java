@@ -107,7 +107,7 @@ public class ChatService {
         return msg;
     }
 
-    private String getAllUsers()
+    public String GetAllUsers()
     {
         String message = "";
         int i=1;
@@ -254,7 +254,7 @@ public class ChatService {
 
     // Command: !users
     public void SendAllUsers(User receiver) {
-        SendViaTcp(receiver.getUserSocket(), getAllUsers());
+        SendViaTcp(receiver.getUserSocket(), GetAllUsers());
     }
 
 
