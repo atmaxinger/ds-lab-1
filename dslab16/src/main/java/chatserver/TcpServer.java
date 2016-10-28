@@ -134,9 +134,9 @@ public class TcpServer implements Runnable {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
-                currentlyOpenClientSockets.remove(socket);
             }
+
+            currentlyOpenClientSockets.remove(socket);
         }
     }
 
