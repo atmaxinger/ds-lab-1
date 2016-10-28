@@ -6,6 +6,7 @@ import java.util.Objects;
 public class User {
     private String _username = "";
     private Socket userSocket;
+    private String privateAddress = "";
 
     public User(String _username, Socket userSocket) {
         this._username = _username;
@@ -26,5 +27,13 @@ public class User {
 
     public void setUserSocket(Socket userSocket) {
         this.userSocket = userSocket;
+    }
+
+    public String getPrivateAddress() {
+        return privateAddress;
+    }
+
+    public void setPrivateAddress(String privateAddress) {
+        this.privateAddress = privateAddress;
     }
 }

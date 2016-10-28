@@ -34,23 +34,26 @@ public class TcpServer implements Runnable {
                 String request = "";
 
                 while(!socket.isClosed() && (request = reader.readLine()) != null) {
+                    String[] parts = request.split(" ");
+
                     if(user == null) {
                         if(request.startsWith("!login")) {
-                            String[] parts = request.split(" ");
 
                             if(parts.length != 3) {
                                 // TODO: Error handling
+                                chatService.SendWrongNumberOfArgumentsError(socket);
                             }
+                            else {
+                                String username = parts[1];
+                                String pass = parts[2];
 
-                            String username = parts[1];
-                            String pass = parts[2];
+                                user = new User(username, socket);
 
-                            user = new User(username, socket);
-
-                            boolean success = chatService.LoginUser(user, pass);
-                            if(!success) {
-                                // TODO: Error handling
-                                user = null;
+                                boolean success = chatService.LoginUser(user, pass);
+                                if (!success) {
+                                    // TODO: Error handling
+                                    user = null;
+                                }
                             }
                         }
                         else {
@@ -59,7 +62,10 @@ public class TcpServer implements Runnable {
                         }
                     }
                     else {
-                        if (request.startsWith("!logout")) {
+                        if(request.startsWith("!login")) {
+                            chatService.SendAlreadyLoggedInError(user.getUserSocket());
+                        }
+                        else if (request.startsWith("!logout")) {
                             boolean success = chatService.LogoutUser(user);
 
                             if(!success) {
@@ -69,9 +75,38 @@ public class TcpServer implements Runnable {
                                 user = null;
                             }
                         }
+                        else if(request.startsWith("!register")) {
+                            if(parts.length != 2) {
+                                // TODO: error handling
+                                chatService.SendWrongNumberOfArgumentsError(socket);
+                            }
+                            else {
+                                chatService.RegisterPrivateAddress(user, parts[1]);
+                            }
+                        }
+                        else if(request.startsWith("!lookup")) {
+                            if(parts.length != 2) {
+                                // TODO: error handling
+                                chatService.SendWrongNumberOfArgumentsError(socket);
+                            }
+                            else {
+                                chatService.LookupPrivateAddress(user, parts[1]);
+                            }
+                        }
+                        else if(request.startsWith("!list")) {
+                            chatService.SendAllOnlineUsers(user);
+                        }
                         // Test message
+                        else if(request.startsWith("!send")) {
+                            if(parts.length == 1) {
+                                chatService.SendWrongNumberOfArgumentsError(socket);
+                            }
+                            else {
+                                chatService.SendMessageToAllOtherUsers(user, request.substring("!send ".length()));
+                            }
+                        }
                         else {
-                            chatService.SendMessageToAllOtherUsers(user, request);
+                            chatService.SendUnknownCommandError(socket);
                         }
                     }
                 }
