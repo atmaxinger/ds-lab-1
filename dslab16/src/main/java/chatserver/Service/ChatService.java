@@ -15,6 +15,13 @@ public class ChatService {
         registeredUsers = new HashMap<>();
     }
 
+    public final String ERR_WRONG_USERNAME_PASSWORD = "Wrong username or password.";
+    public final String ERR_ALREADY_LOGGED_IN = "Already logged in.";
+    public final String ERR_NOT_LOGGED_IN = "Not logged int.";
+
+    public final String INF_SUCCESS_LOGIN = "Successfully logged in.";
+    public final String INF_SUCCESS_LOGOUT = "Successfully logged out.";
+
     public static ChatService getInstance() {
         return instance;
     }
@@ -31,10 +38,12 @@ public class ChatService {
 
         synchronized (this) {
             if(!registeredUsers.containsKey(user.getUserName()))  {
+                SendViaTcp(user.getUserSocket(), ERR_WRONG_USERNAME_PASSWORD);
                 return false;
             }
 
             if(!registeredUsers.get(user.getUserName()).equals(password)) {
+                SendViaTcp(user.getUserSocket(), ERR_WRONG_USERNAME_PASSWORD);
                 return false;
             }
 
@@ -46,12 +55,17 @@ public class ChatService {
             }
 
             if(oldUser != null) {
-                userList.remove(oldUser);
-                oldUser.getUserSocket().close();
+                /*userList.remove(oldUser);
+                oldUser.getUserSocket().close();*/
+
+                SendViaTcp(user.getUserSocket(), ERR_ALREADY_LOGGED_IN);
+                return false;
             }
 
              userList.add(user);
         }
+
+        SendViaTcp(user.getUserSocket(), INF_SUCCESS_LOGIN);
 
         return true;
     }
@@ -69,11 +83,23 @@ public class ChatService {
 
             if(oldUser != null) {
                 userList.remove(oldUser);
+
+                SendViaTcp(user.getUserSocket(), INF_SUCCESS_LOGOUT);
+
                 oldUser.getUserSocket().close();
+            }
+            else {
+                SendViaTcp(user.getUserSocket(), ERR_NOT_LOGGED_IN);
+
+                return false;
             }
         }
 
         return true;
+    }
+
+    public void SendNotLoggedInError(Socket socket) {
+        SendViaTcp(socket, ERR_NOT_LOGGED_IN);
     }
 
     private void SendViaTcp(Socket socket, String toSend)
@@ -90,7 +116,7 @@ public class ChatService {
         }
     }
 
-    public void SendMessageViaTcpSocket(Socket socket, User sender, String message) {
+    private void SendMessageViaTcpSocket(Socket socket, User sender, String message) {
         SendViaTcp(socket, sender.getUserName() + ": " + message);
     }
 
@@ -115,10 +141,12 @@ public class ChatService {
         }
     }
 
-    public void SendMessageToAllUsers(String message) {
+    public void SendMessageToAllOtherUsers(User sender, String message) {
         synchronized (this) {
             for (User user : userList) {
-                SendMessageViaTcpSocket(user.getUserSocket(), user, message);
+                if(user != sender) {
+                    SendMessageViaTcpSocket(user.getUserSocket(), sender, message);
+                }
             }
         }
     }
