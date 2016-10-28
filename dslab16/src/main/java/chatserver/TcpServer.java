@@ -127,6 +127,13 @@ public class TcpServer implements Runnable {
             }
 
 
+            // Try to logout the user
+            try {
+                chatService.LogoutUser(user);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             if(!socket.isClosed()) {
                 try {
                     socket.close();
