@@ -41,14 +41,16 @@ public class ChatService {
 
     private void SendViaTcp(Socket socket, String toSend)
     {
-        try {
-            PrintStream ps = new PrintStream(socket.getOutputStream());
-            ps.println(toSend);
-            ps.flush();
-        } catch (IOException e) {
-            synchronized (this) {
-                System.out.println("[ERROR] SendViaTcp: IOException");
-                e.printStackTrace();
+        if(!socket.isClosed()) {
+            try {
+                PrintStream ps = new PrintStream(socket.getOutputStream());
+                ps.println(toSend);
+                ps.flush();
+            } catch (IOException e) {
+                synchronized (this) {
+                    System.out.println("[ERROR] SendViaTcp: IOException");
+                    e.printStackTrace();
+                }
             }
         }
     }

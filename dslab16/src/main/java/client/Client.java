@@ -145,6 +145,10 @@ public class Client implements IClientCli, Runnable {
 				else if(request.startsWith("!lastMsg")) {
 					println(lastMsg());
 				}
+				else if(request.startsWith("!exit")) {
+					finished = true;
+					exit();
+				}
 
 				writer.flush();
 			}
@@ -245,7 +249,7 @@ public class Client implements IClientCli, Runnable {
 
 	@Override
 	public String exit() throws IOException {
-		// TODO Auto-generated method stub
+		tcpSocket.close();
 		return null;
 	}
 

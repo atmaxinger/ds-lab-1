@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -53,7 +54,10 @@ public class ListenerThread implements Runnable {
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (SocketException se) {
+            // This probably means that we have exited.
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }
