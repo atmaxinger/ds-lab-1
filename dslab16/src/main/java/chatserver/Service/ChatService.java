@@ -266,6 +266,8 @@ public class ChatService {
     // Command: !register <IP:Port>
     public void RegisterPrivateAddress(User user, String address) {
         user.setPrivateAddress(address);
+
+        SendViaTcp(user.getUserSocket(), "!response !register Successfully registered at " + address);
     }
 
     // Command: !lookup <user>

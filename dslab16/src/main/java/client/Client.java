@@ -16,6 +16,8 @@ public class Client implements IClientCli, Runnable {
 	private InputStream userRequestStream;
 	private PrintStream userResponseStream;
 
+	private String username = "";
+
 	Socket tcpSocket = null;
 	PrintWriter serverWriter = null;
 
@@ -25,6 +27,8 @@ public class Client implements IClientCli, Runnable {
 	ListenerThread listenerThread;
 
 	ConcurrentLinkedQueue<String> serverResponseQueue = new ConcurrentLinkedQueue<>();
+
+	private ServerSocket privateServerSocket;
 
 	private Shell shell;
 
@@ -101,6 +105,7 @@ public class Client implements IClientCli, Runnable {
 						println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
 					}
 					else {
+						username = parts[1];
 						String ret = login(parts[1], parts[2]);
 						println(ret);
 					}
@@ -125,20 +130,35 @@ public class Client implements IClientCli, Runnable {
 					}
 				}
 				else if(request.startsWith("!msg")) {
-					// TODO
-					throw new NotImplementedException();
+					if(parts.length < 3) {
+						println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+					}
+					else {
+						String msg = "";
+
+						for(int i=2; i<parts.length; i++) {
+							msg += parts[i] + " ";
+						}
+
+						String ret = msg(parts[1], msg);
+						println(ret);
+					}
 				}
 				else if(request.startsWith("!lookup")) {
-					try {
-						Thread.sleep(5000);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
 					if(parts.length != 2) {
 						println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
 					}
 					else {
 						String ret = lookup(parts[1]);
+						println(ret);
+					}
+				}
+				else if(request.startsWith("!register")) {
+					if(parts.length != 2) {
+						println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+					}
+					else {
+						String ret = register(parts[1]);
 						println(ret);
 					}
 				}
@@ -226,8 +246,34 @@ public class Client implements IClientCli, Runnable {
 
 	@Override
 	public String msg(String username, String message) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+		String lu = lookup(username);
+		lu = lu.substring(lu.indexOf(' '));
+
+		if(lu.toLowerCase().contains("wrong username")) {
+			return "MSG: " + lu;
+		}
+
+
+		String[] parts = lu.split(":");
+		InetAddress address = InetAddress.getByName(parts[0]);
+		int port = Integer.parseInt(parts[1]);
+
+		Socket psock = new Socket(address, port);
+		PrintWriter pw = new PrintWriter(new OutputStreamWriter(psock.getOutputStream()));
+		BufferedReader pr = new BufferedReader(new InputStreamReader(psock.getInputStream()));
+
+		pw.write(username + ": " + message);
+
+		String resp = pr.readLine();
+		if(resp.startsWith("!ack")) {
+			return "MSG: " + username + " replied with !ack";
+		}
+
+		if(!psock.isClosed()) {
+			psock.close();
+		}
+
+		return "MSG: " + username + " did not apply with !ack";
 	}
 
 	@Override
@@ -238,8 +284,26 @@ public class Client implements IClientCli, Runnable {
 
 	@Override
 	public String register(String privateAddress) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+		if(privateServerSocket != null && privateServerSocket.isClosed() == false) {
+			return "REGISTER: there is already an open socket";
+		}
+
+		String[] parts = privateAddress.split(":");
+		InetAddress address = InetAddress.getByName(parts[0]);
+		int port = Integer.parseInt(parts[1]);
+
+		try {
+			privateServerSocket = new ServerSocket(port, 1, address);
+
+			PrivateMessageService pms = new PrivateMessageService(privateServerSocket, writer);
+			(new Thread(pms)).start();
+		}
+		catch (IOException ex) {
+			return "REGISTER: Error opening socket";
+		}
+
+		serverWriter.println("!register " + privateAddress);
+		return "REGISTER: " + getFromResponseQueue("!register");
 	}
 	
 	@Override
@@ -250,6 +314,11 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	public String exit() throws IOException {
 		tcpSocket.close();
+
+		if(privateServerSocket != null && !privateServerSocket.isClosed()) {
+			privateServerSocket.close();
+		}
+
 		return null;
 	}
 
