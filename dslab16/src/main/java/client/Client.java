@@ -255,7 +255,7 @@ public class Client implements IClientCli, Runnable {
 
 
 		String[] parts = lu.split(":");
-		InetAddress address = InetAddress.getByName(parts[0]);
+		InetAddress address = InetAddress.getByName(parts[0].trim());
 		int port = Integer.parseInt(parts[1]);
 
 		Socket psock = new Socket(address, port);
@@ -263,6 +263,7 @@ public class Client implements IClientCli, Runnable {
 		BufferedReader pr = new BufferedReader(new InputStreamReader(psock.getInputStream()));
 
 		pw.write(username + ": " + message);
+		pw.flush();
 
 		String resp = pr.readLine();
 		if(resp.startsWith("!ack")) {
@@ -289,7 +290,7 @@ public class Client implements IClientCli, Runnable {
 		}
 
 		String[] parts = privateAddress.split(":");
-		InetAddress address = InetAddress.getByName(parts[0]);
+		InetAddress address = InetAddress.getByName(parts[0].trim());
 		int port = Integer.parseInt(parts[1]);
 
 		try {
