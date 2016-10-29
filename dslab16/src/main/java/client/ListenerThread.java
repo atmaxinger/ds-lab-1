@@ -15,6 +15,7 @@ public class ListenerThread implements Runnable {
     PrintWriter out;
 
     BufferedReader serverReader = null;
+    String lastMsg = "";
 
 
     public ListenerThread(Queue<String> queue, Socket socket, PrintWriter out) throws IOException {
@@ -27,6 +28,12 @@ public class ListenerThread implements Runnable {
     }
 
 
+    public String getLastMsg() {
+        synchronized (lastMsg) {
+            return lastMsg;
+        }
+    }
+
     @Override
     public void run() {
         String response = "";
@@ -37,6 +44,9 @@ public class ListenerThread implements Runnable {
                     queue.add(response);
                 }
                 else {
+                    synchronized (lastMsg) {
+                        lastMsg = response;
+                    }
                     synchronized (out) {
                         out.println(response);
                         out.flush();

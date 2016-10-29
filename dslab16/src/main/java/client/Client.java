@@ -83,10 +83,7 @@ public class Client implements IClientCli, Runnable {
 	public void run() {
 		boolean finished = false;
 
-
-
 		try {
-
 			while(!finished) {
 				String request = "";
 
@@ -144,6 +141,9 @@ public class Client implements IClientCli, Runnable {
 						String ret = lookup(parts[1]);
 						println(ret);
 					}
+				}
+				else if(request.startsWith("!lastMsg")) {
+					println(lastMsg());
 				}
 
 				writer.flush();
@@ -240,8 +240,7 @@ public class Client implements IClientCli, Runnable {
 	
 	@Override
 	public String lastMsg() throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+		return "LASTMSG: " + listenerThread.getLastMsg();
 	}
 
 	@Override
