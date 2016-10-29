@@ -2,6 +2,7 @@ package client;
 
 import java.io.*;
 import java.net.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import cli.Command;
 import cli.Shell;
@@ -16,8 +17,14 @@ public class Client implements IClientCli, Runnable {
 	private PrintStream userResponseStream;
 
 	Socket tcpSocket = null;
-	BufferedReader serverReader = null;
 	PrintWriter serverWriter = null;
+
+	BufferedReader reader;
+	PrintWriter writer;
+
+	ListenerThread listenerThread;
+
+	ConcurrentLinkedQueue<String> serverResponseQueue = new ConcurrentLinkedQueue<>();
 
 	private Shell shell;
 
@@ -40,43 +47,65 @@ public class Client implements IClientCli, Runnable {
 
 		tcpSocket = new Socket(config.getString("chatserver.host"),  config.getInt("chatserver.tcp.port"));
 
-		// create a reader to retrieve messages send by the server
-		serverReader = new BufferedReader(new InputStreamReader(tcpSocket.getInputStream()));
+
 		// create a writer to send messages to the server
 		serverWriter = new PrintWriter(tcpSocket.getOutputStream(), true);
 
+		reader = new BufferedReader(new InputStreamReader(userRequestStream));
+		writer = new PrintWriter(new OutputStreamWriter(userResponseStream));
+
 		shell = new Shell(componentName, userRequestStream, userResponseStream);
 		shell.register(this);
+
+		listenerThread = new ListenerThread(serverResponseQueue, tcpSocket, writer);
+		(new Thread(listenerThread)).start();
 
 		// TODO
 	}
 
 	private final String ERR_WRONG_NUMBER_OF_ARGUMENTS = "Wrong number of arguments.";
 
+	private void print(String s) {
+		synchronized (writer) {
+			writer.print(s);
+			writer.flush();
+		}
+	}
+
+	private void println(String s) {
+		synchronized (writer) {
+			writer.println(s);
+			writer.flush();
+		}
+	}
+
 	@Override
 	public void run() {
 		boolean finished = false;
 
-		BufferedReader reader = new BufferedReader(new InputStreamReader(userRequestStream));
-		PrintWriter writer = new PrintWriter(new OutputStreamWriter(userResponseStream));
+
 
 		try {
 
 			while(!finished) {
-				writer.print(">");
-				writer.flush();
+				String request = "";
 
-				String request = reader.readLine().trim();
+				synchronized (writer) {
+					writer.print(">");
+					writer.flush();
+				}
+
+				request = reader.readLine().trim();
+
 				String parts[] = request.split(" ");
 
 				if(request.startsWith("!login ")) {
 					if(parts.length != 3) {
-						writer.println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
-						writer.flush();
+						println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
 					}
 					else {
 						String ret = login(parts[1], parts[2]);
-						writer.println(ret);
+						println(ret);
 					}
 				}
 				else if(request.startsWith("!logout ")) {
@@ -84,14 +113,14 @@ public class Client implements IClientCli, Runnable {
 					writer.println(ret);
 				} else if (request.startsWith("!send ")) {
 					if(parts.length == 1) {
-						writer.println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+						println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
 					}
 					else {
 						send(request.substring("!send ".length()));
 					}
 				} else if(request.startsWith("!list")) {
 					if(parts.length != 1) {
-						writer.println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+						println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
 					}
 					else {
 						String ret = list();
@@ -103,12 +132,17 @@ public class Client implements IClientCli, Runnable {
 					throw new NotImplementedException();
 				}
 				else if(request.startsWith("!lookup")) {
+					try {
+						Thread.sleep(5000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 					if(parts.length != 2) {
-						writer.println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+						println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
 					}
 					else {
 						String ret = lookup(parts[1]);
-						writer.println(ret);
+						println(ret);
 					}
 				}
 
@@ -122,17 +156,44 @@ public class Client implements IClientCli, Runnable {
 		}
 	}
 
+	private String getFromResponseQueue(String what) {
+		String resp = null;
+		what = what.trim();
+		String search = "!response " + what;
+
+		while(resp == null) {
+			for (String s : serverResponseQueue) {
+				if (s.startsWith(search)) {
+					resp = s;
+					break;
+				}
+			}
+
+			if(resp != null) {
+				serverResponseQueue.remove(resp);
+			}
+			else {
+				// TODO: Better waiting
+			}
+		}
+
+		// cut off the !response !what
+		resp = resp.substring( (search + " ").length() );
+
+		return resp;
+	}
+
 	@Override
 	@Command
 	public String login(String username, String password) throws IOException {
 		serverWriter.println("!login " + username + " " + password);
-		return serverReader.readLine();
+		return "LOGIN: " + getFromResponseQueue("!login");
 	}
 
 	@Override
 	public String logout() throws IOException {
 		serverWriter.println("!logout");
-		return serverReader.readLine();
+		return "LOGOUT: " + getFromResponseQueue("!logout");
 	}
 
 	@Override
@@ -156,7 +217,7 @@ public class Client implements IClientCli, Runnable {
 
 		udpSocket.receive(packet);
 
-		return new String(packet.getData());
+		return "LIST: " + new String(packet.getData());
 	}
 
 	@Override
@@ -168,7 +229,7 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	public String lookup(String username) throws IOException {
 		serverWriter.println("!lookup " + username);
-		return serverReader.readLine();
+		return "LOOKUP: " + getFromResponseQueue("!lookup");
 	}
 
 	@Override

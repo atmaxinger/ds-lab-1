@@ -42,6 +42,8 @@ public class TcpServer implements Runnable {
                 String request = "";
 
                 while(!socket.isClosed() && (request = reader.readLine()) != null && !Thread.interrupted()) {
+
+
                     String[] parts = request.split(" ");
 
                     if(user == null) {
@@ -70,52 +72,44 @@ public class TcpServer implements Runnable {
                         }
                     }
                     else {
-                        if(request.startsWith("!login")) {
-                            chatService.SendAlreadyLoggedInError(user.getUserSocket());
-                        }
-                        else if (request.startsWith("!logout")) {
-                            boolean success = chatService.LogoutUser(user);
+                            if (request.startsWith("!login")) {
+                                chatService.SendAlreadyLoggedInError(user.getUserSocket());
+                            } else if (request.startsWith("!logout")) {
+                                boolean success = chatService.LogoutUser(user);
 
-                            if(!success) {
-                                // TODO: Error handling
+                                if (!success) {
+                                    // TODO: Error handling
+                                } else {
+                                    user = null;
+                                }
+                            } else if (request.startsWith("!register")) {
+                                if (parts.length != 2) {
+                                    // TODO: error handling
+                                    chatService.SendWrongNumberOfArgumentsError(socket);
+                                } else {
+                                    chatService.RegisterPrivateAddress(user, parts[1]);
+                                }
+                            } else if (request.startsWith("!lookup")) {
+                                if (parts.length != 2) {
+                                    // TODO: error handling
+                                    chatService.SendWrongNumberOfArgumentsError(socket);
+                                } else {
+                                    chatService.LookupPrivateAddress(user, parts[1]);
+                                }
+                            } else if (request.startsWith("!list")) {
+                                chatService.SendAllOnlineUsers(user);
                             }
-                            else {
-                                user = null;
+                            // Test message
+                            else if (request.startsWith("!send")) {
+                                if (parts.length == 1) {
+                                    chatService.SendWrongNumberOfArgumentsError(socket);
+                                } else {
+                                    chatService.SendMessageToAllOtherUsers(user, request.substring("!send ".length()));
+                                }
+                            } else {
+                                chatService.SendUnknownCommandError(socket);
                             }
-                        }
-                        else if(request.startsWith("!register")) {
-                            if(parts.length != 2) {
-                                // TODO: error handling
-                                chatService.SendWrongNumberOfArgumentsError(socket);
-                            }
-                            else {
-                                chatService.RegisterPrivateAddress(user, parts[1]);
-                            }
-                        }
-                        else if(request.startsWith("!lookup")) {
-                            if(parts.length != 2) {
-                                // TODO: error handling
-                                chatService.SendWrongNumberOfArgumentsError(socket);
-                            }
-                            else {
-                                chatService.LookupPrivateAddress(user, parts[1]);
-                            }
-                        }
-                        else if(request.startsWith("!list")) {
-                            chatService.SendAllOnlineUsers(user);
-                        }
-                        // Test message
-                        else if(request.startsWith("!send")) {
-                            if(parts.length == 1) {
-                                chatService.SendWrongNumberOfArgumentsError(socket);
-                            }
-                            else {
-                                chatService.SendMessageToAllOtherUsers(user, request.substring("!send ".length()));
-                            }
-                        }
-                        else {
-                            chatService.SendUnknownCommandError(socket);
-                        }
+
                     }
                 }
             }

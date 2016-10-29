@@ -18,15 +18,15 @@ public class ChatService {
         registeredUsers = new HashMap<>();
     }
 
-    public final String ERR_WRONG_USERNAME_PASSWORD = "Wrong username or password.";
-    public final String ERR_ALREADY_LOGGED_IN = "Already logged in.";
-    public final String ERR_NOT_LOGGED_IN = "Not logged int.";
-    public final String ERR_NOT_REGISTERED = "Wrong username or user not registered.";
+    public final String ERR_WRONG_USERNAME_PASSWORD = "!response !login Wrong username or password.";
+    public final String ERR_ALREADY_LOGGED_IN = "!response !login Already logged in.";
+    public final String ERR_NOT_LOGGED_IN = "!response !logout Not logged int.";
+    public final String ERR_NOT_REGISTERED = "!response !lookup Wrong username or user not registered.";
     public final String ERR_WRONG_NUMBER_OF_ARGUMENTS = "Wrong number of arguments for the specified command.";
     public final String ERR_UNKNOWN_COMMAND = "Unknown command.";
 
-    public final String INF_SUCCESS_LOGIN = "Successfully logged in.";
-    public final String INF_SUCCESS_LOGOUT = "Successfully logged out.";
+    public final String INF_SUCCESS_LOGIN = "!response !login Successfully logged in.";
+    public final String INF_SUCCESS_LOGOUT ="!response !logout Successfully logged out.";
 
     public static ChatService getInstance() {
         return instance;
@@ -252,12 +252,12 @@ public class ChatService {
     public void SendAllOnlineUsers(User receiver) {
         String msg = getAllOnlineUsersFormatted();
 
-        SendViaTcp(receiver.getUserSocket(), msg);
+        SendViaTcp(receiver.getUserSocket(), "!response !list " + msg);
     }
 
     // Command: !users
     public void SendAllUsers(User receiver) {
-        SendViaTcp(receiver.getUserSocket(), GetAllUsers());
+        SendViaTcp(receiver.getUserSocket(), "!response !users " + GetAllUsers());
     }
 
 
@@ -283,7 +283,7 @@ public class ChatService {
             SendViaTcp(receiver.getUserSocket(), ERR_NOT_REGISTERED);
         }
         else {
-            SendViaTcp(receiver.getUserSocket(), address);
+            SendViaTcp(receiver.getUserSocket(), "!response !lookup " + address);
         }
     }
 
