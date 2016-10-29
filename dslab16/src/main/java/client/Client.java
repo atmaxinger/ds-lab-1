@@ -262,7 +262,7 @@ public class Client implements IClientCli, Runnable {
 		PrintWriter pw = new PrintWriter(new OutputStreamWriter(psock.getOutputStream()));
 		BufferedReader pr = new BufferedReader(new InputStreamReader(psock.getInputStream()));
 
-		pw.println(username + ": " + message);
+		pw.println(this.username + ": " + message);
 		pw.flush();
 
 		String resp = pr.readLine();
