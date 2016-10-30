@@ -8,21 +8,20 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class ListenerThread implements Runnable {
-    Queue<String> queue;
-    Socket socket;
-    PrintWriter out;
+public class PublicListenerThread implements Runnable {
+    private Queue<String> queue;
+    private Socket socket;
+    private PrintWriter userWriter;
 
-    BufferedReader serverReader = null;
-    String lastMsg = "";
+    private BufferedReader serverReader = null;
+    private String lastMsg = "";
 
 
-    public ListenerThread(Queue<String> queue, Socket socket, PrintWriter out) throws IOException {
+    public PublicListenerThread(Queue<String> queue, Socket socket, PrintWriter userWriter) throws IOException {
         this.queue = queue;
         this.socket = socket;
-        this.out = out;
+        this.userWriter = userWriter;
 
         // create a reader to retrieve messages send by the server
         serverReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -39,25 +38,22 @@ public class ListenerThread implements Runnable {
     public void run() {
         String response = "";
         try {
-            while (!socket.isClosed() && (response = serverReader.readLine()) != null)
-            {
-                if(response.startsWith("!response")) {
+            while (!socket.isClosed() && (response = serverReader.readLine()) != null) {
+                if (response.startsWith("!response")) {
                     queue.add(response);
-                }
-                else {
+                } else {
                     synchronized (lastMsg) {
                         lastMsg = response;
                     }
-                    synchronized (out) {
-                        out.println(response);
-                        out.flush();
+                    synchronized (userWriter) {
+                        userWriter.println(response);
+                        userWriter.flush();
                     }
                 }
             }
         } catch (SocketException se) {
             // This probably means that we have exited.
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

@@ -18,15 +18,15 @@ public class ChatService {
         registeredUsers = new HashMap<>();
     }
 
-    public final String ERR_WRONG_USERNAME_PASSWORD = "!response !login Wrong username or password.";
-    public final String ERR_ALREADY_LOGGED_IN = "!response !login Already logged in.";
-    public final String ERR_NOT_LOGGED_IN = "!response !logout Not logged int.";
-    public final String ERR_NOT_REGISTERED = "!response !lookup Wrong username or user not registered.";
+    public final String ERR_WRONG_USERNAME_PASSWORD = "Wrong username or password.";
+    public final String ERR_ALREADY_LOGGED_IN = "Already logged in.";
+    public final String ERR_NOT_LOGGED_IN = "Not logged int.";
+    public final String ERR_NOT_REGISTERED = "Wrong username or user not registered.";
     public final String ERR_WRONG_NUMBER_OF_ARGUMENTS = "Wrong number of arguments for the specified command.";
     public final String ERR_UNKNOWN_COMMAND = "Unknown command.";
 
-    public final String INF_SUCCESS_LOGIN = "!response !login Successfully logged in.";
-    public final String INF_SUCCESS_LOGOUT ="!response !logout Successfully logged out.";
+    public final String INF_SUCCESS_LOGIN = "Successfully logged in.";
+    public final String INF_SUCCESS_LOGOUT ="Successfully logged out.";
 
     public static ChatService getInstance() {
         return instance;
@@ -37,6 +37,10 @@ public class ChatService {
 
     public void setRegisteredUsers(HashMap<String, String> registeredUsers) {
         this.registeredUsers = registeredUsers;
+    }
+
+    private String formatServerReponse(String command, String message) {
+        return String.format("!response !%s %s", command, message);
     }
 
     private void SendViaTcp(Socket socket, String toSend)
@@ -157,11 +161,11 @@ public class ChatService {
     }
 
     public void SendNotLoggedInError(Socket socket) {
-        SendViaTcp(socket, ERR_NOT_LOGGED_IN);
+        SendViaTcp(socket, formatServerReponse("login", ERR_NOT_LOGGED_IN));
     }
 
     public void SendAlreadyLoggedInError(Socket socket) {
-        SendViaTcp(socket, ERR_ALREADY_LOGGED_IN);
+        SendViaTcp(socket, formatServerReponse("login", ERR_ALREADY_LOGGED_IN));
     }
 
     public void SendWrongNumberOfArgumentsError(Socket socket) {
@@ -178,12 +182,12 @@ public class ChatService {
 
         synchronized (this) {
             if(!registeredUsers.containsKey(user.getUserName()))  {
-                SendViaTcp(user.getUserSocket(), ERR_WRONG_USERNAME_PASSWORD);
+                SendViaTcp(user.getUserSocket(), formatServerReponse("login", ERR_WRONG_USERNAME_PASSWORD));
                 return false;
             }
 
             if(!registeredUsers.get(user.getUserName()).equals(password)) {
-                SendViaTcp(user.getUserSocket(), ERR_WRONG_USERNAME_PASSWORD);
+                SendViaTcp(user.getUserSocket(), formatServerReponse("login", ERR_WRONG_USERNAME_PASSWORD));
                 return false;
             }
 
@@ -198,14 +202,14 @@ public class ChatService {
                 /*userList.remove(oldUser);
                 oldUser.getUserSocket().close();*/
 
-                SendViaTcp(user.getUserSocket(), ERR_ALREADY_LOGGED_IN);
+                SendViaTcp(user.getUserSocket(), formatServerReponse("login", ERR_ALREADY_LOGGED_IN));
                 return false;
             }
 
             userList.add(user);
         }
 
-        SendViaTcp(user.getUserSocket(), INF_SUCCESS_LOGIN);
+        SendViaTcp(user.getUserSocket(), formatServerReponse("login", INF_SUCCESS_LOGIN));
 
         return true;
     }
@@ -225,12 +229,12 @@ public class ChatService {
             if(oldUser != null) {
                 userList.remove(oldUser);
 
-                SendViaTcp(user.getUserSocket(), INF_SUCCESS_LOGOUT);
+                SendViaTcp(user.getUserSocket(), formatServerReponse("logout", INF_SUCCESS_LOGOUT));
 
                 oldUser.getUserSocket().close();
             }
             else {
-                SendViaTcp(user.getUserSocket(), ERR_NOT_LOGGED_IN);
+                SendViaTcp(user.getUserSocket(), formatServerReponse("logout", ERR_NOT_LOGGED_IN));
 
                 return false;
             }
@@ -254,12 +258,12 @@ public class ChatService {
     public void SendAllOnlineUsers(User receiver) {
         String msg = getAllOnlineUsersFormatted();
 
-        SendViaTcp(receiver.getUserSocket(), "!response !list " + msg);
+        SendViaTcp(receiver.getUserSocket(), formatServerReponse("list", msg));
     }
 
     // Command: !users
     public void SendAllUsers(User receiver) {
-        SendViaTcp(receiver.getUserSocket(), "!response !users " + GetAllUsers());
+        SendViaTcp(receiver.getUserSocket(), formatServerReponse("users", GetAllUsers()));
     }
 
 
@@ -267,7 +271,7 @@ public class ChatService {
     public void RegisterPrivateAddress(User user, String address) {
         user.setPrivateAddress(address);
 
-        SendViaTcp(user.getUserSocket(), "!response !register Successfully registered at " + address);
+        SendViaTcp(user.getUserSocket(), formatServerReponse("register", "Successfully registered at " + address));
     }
 
     // Command: !lookup <user>
@@ -284,10 +288,10 @@ public class ChatService {
         }
 
         if(address.isEmpty()) {
-            SendViaTcp(receiver.getUserSocket(), ERR_NOT_REGISTERED);
+            SendViaTcp(receiver.getUserSocket(), formatServerReponse("lookup", ERR_NOT_REGISTERED));
         }
         else {
-            SendViaTcp(receiver.getUserSocket(), "!response !lookup " + address);
+            SendViaTcp(receiver.getUserSocket(), formatServerReponse("lookup", address));
         }
     }
 
