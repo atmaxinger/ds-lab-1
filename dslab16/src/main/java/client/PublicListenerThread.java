@@ -45,6 +45,7 @@ public class PublicListenerThread implements Runnable {
         try {
             while (!socket.isClosed() && (response = serverReader.readLine()) != null) {
                 if (response.startsWith("!response")) {
+                    System.out.println("GOT: " + response);
                     synchronized (queue) {
                         queue.add(response);
                         queue.notify();

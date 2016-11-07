@@ -47,9 +47,11 @@ public class ChatService {
     {
         if(!socket.isClosed()) {
             try {
-                PrintStream ps = new PrintStream(socket.getOutputStream());
-                ps.println(toSend);
-                ps.flush();
+                synchronized (socket) {
+                    PrintStream ps = new PrintStream(socket.getOutputStream());
+                    ps.println(toSend);
+                    ps.flush();
+                }
             } catch (IOException e) {
                 synchronized (this) {
                     System.out.println("[ERROR] SendViaTcp: IOException");
@@ -60,9 +62,7 @@ public class ChatService {
     }
 
     private void SendMessageViaTcpSocket(Socket socket, User sender, String message) {
-        synchronized (socket) {
-            SendViaTcp(socket, sender.getUserName() + ": " + message);
-        }
+        SendViaTcp(socket, sender.getUserName() + ": " + message);
     }
 
     private void SendMessageToUser(String usernameReceiver, User sender, String message) {
@@ -233,9 +233,7 @@ public class ChatService {
 
                 SendViaTcp(user.getUserSocket(), formatServerReponse("logout", INF_SUCCESS_LOGOUT));
 
-                synchronized (oldUser.getUserSocket()) {
-                    oldUser.getUserSocket().close();
-                }
+                oldUser.getUserSocket().close();
             }
             else {
                 SendViaTcp(user.getUserSocket(), formatServerReponse("logout", ERR_NOT_LOGGED_IN));

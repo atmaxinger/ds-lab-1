@@ -126,7 +126,17 @@ public class Client implements IClientCli, Runnable {
                 }
                 else {
                     if (request.startsWith("!logout")) {
-                        String ret = logout();
+                        String ret = "";
+                        ret = logout();
+
+                        /*try {
+                            ret = logout();
+                        } catch (ServerHasBeenClosedException se) {
+                            println("Successfully logged out.");
+                            throw se;
+                        }
+                        */
+
                         println(ret);
                     } else if(request.startsWith("!login")) {
                         println("Already logged in.");
@@ -186,7 +196,7 @@ public class Client implements IClientCli, Runnable {
         what = what.trim();
         String search = "!response " + what;
 
-        while (resp == null && !tcpSocket.isClosed()) {
+        while (resp == null) {
             synchronized (serverResponseQueue) {
                 for (String s : serverResponseQueue) {
                     if (s.startsWith(search)) {
@@ -198,18 +208,18 @@ public class Client implements IClientCli, Runnable {
                 if (resp != null) {
                     serverResponseQueue.remove(resp);
                 } else {
-                    // TODO: Better waiting
                     try {
-                        serverResponseQueue.wait();
+                        if(!tcpSocket.isClosed()) {
+                            serverResponseQueue.wait();
+                        }
+                        else {
+                            throw new ServerHasBeenClosedException();
+                        }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
             }
-        }
-
-        if(resp == null) {
-            throw new ServerHasBeenClosedException();
         }
 
         // cut off the !response !what
