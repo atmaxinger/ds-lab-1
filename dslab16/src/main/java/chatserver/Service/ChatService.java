@@ -60,7 +60,9 @@ public class ChatService {
     }
 
     private void SendMessageViaTcpSocket(Socket socket, User sender, String message) {
-        SendViaTcp(socket, sender.getUserName() + ": " + message);
+        synchronized (socket) {
+            SendViaTcp(socket, sender.getUserName() + ": " + message);
+        }
     }
 
     private void SendMessageToUser(String usernameReceiver, User sender, String message) {
@@ -231,7 +233,9 @@ public class ChatService {
 
                 SendViaTcp(user.getUserSocket(), formatServerReponse("logout", INF_SUCCESS_LOGOUT));
 
-                oldUser.getUserSocket().close();
+                synchronized (oldUser.getUserSocket()) {
+                    oldUser.getUserSocket().close();
+                }
             }
             else {
                 SendViaTcp(user.getUserSocket(), formatServerReponse("logout", ERR_NOT_LOGGED_IN));

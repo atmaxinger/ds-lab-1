@@ -160,11 +160,13 @@ public class TcpServer implements Runnable {
                 e.printStackTrace();
             }
 
-            if (!socket.isClosed()) {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+            synchronized (socket) {
+                if (!socket.isClosed()) {
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
 
