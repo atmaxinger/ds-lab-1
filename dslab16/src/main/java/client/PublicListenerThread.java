@@ -45,7 +45,10 @@ public class PublicListenerThread implements Runnable {
         try {
             while (!socket.isClosed() && (response = serverReader.readLine()) != null) {
                 if (response.startsWith("!response")) {
-                    queue.add(response);
+                    synchronized (queue) {
+                        queue.add(response);
+                        queue.notify();
+                    }
                 } else {
                     synchronized (lastMsg) {
                         lastMsg = response;
@@ -60,6 +63,18 @@ public class PublicListenerThread implements Runnable {
             // This probably means that we have exited.
         } catch (IOException e) {
             e.printStackTrace();
+        }
+
+        synchronized (queue) {
+            queue.notify();
+        }
+
+        if(!socket.isClosed()) {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

@@ -172,29 +172,44 @@ public class Client implements IClientCli, Runnable {
             }
         } catch (SocketException se) {
             // Wsl wurde der Server beendet.
-        } catch (IOException e) {
+        }
+        catch (ServerHasBeenClosedException se) {
+            println("Server has been closed");
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private String getFromResponseQueue(String what) {
+    private String getFromResponseQueue(String what) throws ServerHasBeenClosedException {
         String resp = null;
         what = what.trim();
         String search = "!response " + what;
 
-        while (resp == null) {
-            for (String s : serverResponseQueue) {
-                if (s.startsWith(search)) {
-                    resp = s;
-                    break;
+        while (resp == null && !tcpSocket.isClosed()) {
+            synchronized (serverResponseQueue) {
+                for (String s : serverResponseQueue) {
+                    if (s.startsWith(search)) {
+                        resp = s;
+                        break;
+                    }
+                }
+
+                if (resp != null) {
+                    serverResponseQueue.remove(resp);
+                } else {
+                    // TODO: Better waiting
+                    try {
+                        serverResponseQueue.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
+        }
 
-            if (resp != null) {
-                serverResponseQueue.remove(resp);
-            } else {
-                // TODO: Better waiting
-            }
+        if(resp == null) {
+            throw new ServerHasBeenClosedException();
         }
 
         // cut off the !response !what
