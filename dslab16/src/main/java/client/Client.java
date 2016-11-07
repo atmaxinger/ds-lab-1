@@ -18,6 +18,7 @@ public class Client implements IClientCli, Runnable {
     private BufferedReader userReader;
     private PrintWriter userWriter;
     private String username = "";
+    private boolean loggedin = false;
     private Socket tcpSocket = null;
     private PrintWriter serverWriter = null;
     private PublicListenerThread publicListenerThread;
@@ -94,63 +95,79 @@ public class Client implements IClientCli, Runnable {
 
                 String parts[] = request.split(" ");
 
-                if (request.startsWith("!login ")) {
-                    if (parts.length != 3) {
-                        println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
-                    } else {
-                        username = parts[1];
-                        String ret = login(parts[1], parts[2]);
-                        println(ret);
-                    }
-                } else if (request.startsWith("!logout ")) {
-                    String ret = logout();
-                    println(ret);
-                } else if (request.startsWith("!send ")) {
-                    if (parts.length == 1) {
-                        println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
-                    } else {
-                        send(request.substring("!send ".length()));
-                    }
-                } else if (request.startsWith("!list")) {
+
+                if (request.startsWith("!exit")) {
+                    finished = true;
+                    exit();
+                    return;
+                }
+                else if (request.startsWith("!list")) {
                     if (parts.length != 1) {
                         println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
                     } else {
                         String ret = list();
                         println(ret);
                     }
-                } else if (request.startsWith("!msg")) {
-                    if (parts.length < 3) {
-                        println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
-                    } else {
-                        String msg = "";
+                }
 
-                        for (int i = 2; i < parts.length; i++) {
-                            msg += parts[i] + " ";
+                if(!loggedin) {
+                    if (request.startsWith("!login ")) {
+                        if (parts.length != 3) {
+                            println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+                        } else {
+                            username = parts[1];
+                            String ret = login(parts[1], parts[2]);
+                            println(ret);
                         }
+                    }
+                    else {
+                        println("Not logged in.");
+                    }
+                }
+                else {
+                    if (request.startsWith("!logout")) {
+                        String ret = logout();
+                        println(ret);
+                    } else if(request.startsWith("!login")) {
+                        println("Already logged in.");
+                    }
+                    else if (request.startsWith("!send ")) {
+                        if (parts.length == 1) {
+                            println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+                        } else {
+                            send(request.substring("!send ".length()));
+                        }
+                    } else if (request.startsWith("!msg")) {
+                        if (parts.length < 3) {
+                            println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+                        } else {
+                            String msg = "";
 
-                        String ret = msg(parts[1], msg);
+                            for (int i = 2; i < parts.length; i++) {
+                                msg += parts[i] + " ";
+                            }
 
-                        println(ret);
+                            String ret = msg(parts[1], msg);
+
+                            println(ret);
+                        }
+                    } else if (request.startsWith("!lookup")) {
+                        if (parts.length != 2) {
+                            println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+                        } else {
+                            String ret = lookup(parts[1]);
+                            println(ret);
+                        }
+                    } else if (request.startsWith("!register")) {
+                        if (parts.length != 2) {
+                            println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
+                        } else {
+                            String ret = register(parts[1]);
+                            println(ret);
+                        }
+                    } else if (request.startsWith("!lastMsg")) {
+                        println(lastMsg());
                     }
-                } else if (request.startsWith("!lookup")) {
-                    if (parts.length != 2) {
-                        println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
-                    } else {
-                        String ret = lookup(parts[1]);
-                        println(ret);
-                    }
-                } else if (request.startsWith("!register")) {
-                    if (parts.length != 2) {
-                        println(ERR_WRONG_NUMBER_OF_ARGUMENTS);
-                    } else {
-                        String ret = register(parts[1]);
-                        println(ret);
-                    }
-                } else if (request.startsWith("!lastMsg")) {
-                    println(lastMsg());
-                } else if (request.startsWith("!exit")) {
-                    finished = true;
-                    exit();
                 }
             }
         } catch (SocketException se) {
@@ -190,13 +207,30 @@ public class Client implements IClientCli, Runnable {
     @Command
     public String login(String username, String password) throws IOException {
         serverWriter.println("!login " + username + " " + password);
-        return "LOGIN: " + getFromResponseQueue("!login");
+
+        String response = getFromResponseQueue("!login");
+
+        if(response.toLowerCase().contains("success")) {
+            loggedin = true;
+            this.username = username;
+        }
+
+
+        return "LOGIN: " + response;
     }
 
     @Override
     public String logout() throws IOException {
         serverWriter.println("!logout");
-        return "LOGOUT: " + getFromResponseQueue("!logout");
+
+        String response = getFromResponseQueue("!logout");
+
+        if(response.toLowerCase().contains("success")) {
+            loggedin = false;
+            this.username = "";
+        }
+
+        return "LOGOUT: " + response;
     }
 
     @Override
@@ -268,6 +302,11 @@ public class Client implements IClientCli, Runnable {
         try {
             String[] parts = privateAddress.split(":");
             InetAddress address = InetAddress.getByName(parts[0].trim());
+
+            if(parts.length != 2) {
+                return "REGISTER: Invalid format (ipaddress:port)";
+            }
+
             int port = Integer.parseInt(parts[1]);
             if(!checkPort(port)) {
                 throw new NumberFormatException();

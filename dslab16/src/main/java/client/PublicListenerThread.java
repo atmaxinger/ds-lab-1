@@ -30,6 +30,11 @@ public class PublicListenerThread implements Runnable {
 
     public String getLastMsg() {
         synchronized (lastMsg) {
+
+            if(lastMsg == null || lastMsg.isEmpty()) {
+                return "No message received!";
+            }
+
             return lastMsg;
         }
     }

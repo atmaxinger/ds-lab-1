@@ -271,7 +271,7 @@ public class ChatService {
     public void RegisterPrivateAddress(User user, String address) {
         user.setPrivateAddress(address);
 
-        SendViaTcp(user.getUserSocket(), formatServerReponse("register", "Successfully registered at " + address));
+        SendViaTcp(user.getUserSocket(), formatServerReponse("register", "Successfully registered address for " + user.getUserName() + "."));
     }
 
     // Command: !lookup <user>

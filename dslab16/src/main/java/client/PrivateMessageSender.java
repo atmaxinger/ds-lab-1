@@ -37,7 +37,7 @@ public class PrivateMessageSender implements Runnable {
             String resp = tcpReader.readLine();
             if (resp.startsWith("!ack")) {
                 synchronized (userWriter) {
-                    userWriter.println("MSG: " + receiverUsername + " replied with !ack");
+                    userWriter.println("MSG: " + receiverUsername + " replied with !ack.");
                     userWriter.flush();
                 }
             }
